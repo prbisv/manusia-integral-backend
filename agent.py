@@ -38,7 +38,7 @@ class DestinyMatrixInput(BaseModel):
 async def ask_destiny_matrix(input_data: DestinyMatrixInput):
     # Compose the user's message with the points
     points_str = "\n".join(f"{k}: {v}" for k, v in input_data.points.items())
-    user_message = f"Data matrix:\n{points_str}\n\nPertanyaan: {input_data.message}"
+    user_message = f"Data matrix:\n{points_str}\n\nQuestion: {input_data.message}"
 
     # Create or use an existing thread
     if input_data.thread_id:
