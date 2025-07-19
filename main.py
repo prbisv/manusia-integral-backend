@@ -62,10 +62,13 @@ async def ask_destiny_matrix(input_data: DestinyMatrixInput):
     # Create a run and poll for completion
     run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant.id)
     messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
-    message_content = messages[0].content[0].text
-
+    #debug
+    print("Messages:", messages)
+    if not messages:
+        return {"response": "[asistant tidak merespon...].", "thread_id": thread_id}
+    else:
+        message_content = messages[0].content[0].text
     # Optionally, handle citations if needed (not shown here)
-
     return {
         "response": message_content.value,
         "thread_id": thread_id
