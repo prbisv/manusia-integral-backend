@@ -7,16 +7,51 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 
-
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+class DestinyMatrixInput(BaseModel):
+    name: str
+    gender: str
+    date: str
+    points: Dict[str, Any]
+    chartHeart: Dict[str, Any]
+    purposes: Dict[str, Any]
+    years: Dict[str, Any]
+    message: str
+    thread_id: Optional[str] = None
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+
+@app.post("/ask")
+async def ask_destiny_matrix(input_data: DestinyMatrixInput):
+    # Compose the user's message with all relevant data
+    user_message = (
+        f"Nama: {input_data.name}\n"
+        f"Gender: {input_data.gender}\n"
+        f"Tanggal Lahir: {input_data.date}\n"
+        f"Points: {input_data.points}\n"
+        f"ChartHeart: {input_data.chartHeart}\n"
+        f"Purposes: {input_data.purposes}\n"
+        f"Years: {input_data.years}\n"
+        f"Pertanyaan: {input_data.message}"
+    )
+
+    # Create or use an existing thread
+    if input_data.thread_id:
+        thread_id = input_data.thread_id
+        thread = client.beta.threads.retrieve(thread_id)
+    else:
+        thread = client.beta.threads.create(messages=[{"role": "user", "content": user_message}])
+        thread_id = thread.id
+
+    # Create a run and poll for completion
+    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant.id)
+    messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
+    message_content = messages[0].content[0].text
+
+    return {
+        "response": message_content.value,
+        "thread_id": thread_id
+    }
 
 load_dotenv()
 
