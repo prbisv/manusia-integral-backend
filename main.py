@@ -44,7 +44,7 @@ async def ask_destiny_matrix(input_data: DestinyMatrixInput):
         thread_id = thread.id
 
     # Create a run and poll for completion
-    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant.id)
+    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
     messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
     message_content = messages[0].content[0].text
 
@@ -58,20 +58,26 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 vector_key = os.getenv("VECTOR_STORE_ID")
 system_prompt = os.getenv("PROMPT")
+assistant_id = os.getenv("ASSISTANT_ID")
+
 if not api_key or not vector_key or not system_prompt:
     raise ValueError("environment variable not set.")
 
 client = OpenAI(api_key=api_key)
 
-assistant = client.beta.assistants.create(
-  name="Destiny Matrix analysis specialist",
-  instructions=system_prompt,
-  model="gpt-4o",
-  tools=[{"type": "file_search"}],
-)
+## to create an assistant, uncomment the following lines
+## Note: This should be done only once, and the assistant_id should be stored in the
+## environment variable for future use.
+
+# assistant = client.beta.assistants.create(
+#   name="Destiny Matrix analysis specialist",
+#   instructions=system_prompt,
+#   model="gpt-4o",
+#   tools=[{"type": "file_search"}],
+# )
 
 assistant = client.beta.assistants.update(
-  assistant_id=assistant.id,
+  assistant_id=assistant_id,
   tool_resources={"file_search": {"vector_store_ids": [vector_key]}},
 )
 
@@ -95,7 +101,7 @@ async def ask_destiny_matrix(input_data: DestinyMatrixInput):
         thread_id = thread.id
 
     # Create a run and poll for completion
-    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant.id)
+    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
     messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
     #debug
     print("Messages:", messages)
