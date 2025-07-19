@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 origins = [
-    "https://your-vercel-frontend-domain.vercel.app",
+    "https://manusiaintegral.com",
     "http://localhost:8000",
 ]
 
