@@ -36,39 +36,6 @@ class DestinyMatrixInput(BaseModel):
     message: str
     thread_id: Optional[str] = None
 
-
-@app.post("/ask")
-async def ask_destiny_matrix(input_data: DestinyMatrixInput):
-    # Compose the user's message with all relevant data
-    user_message = (
-        f"Nama: {input_data.name}\n"
-        f"Gender: {input_data.gender}\n"
-        f"Tanggal Lahir: {input_data.date}\n"
-        f"Points: {input_data.points}\n"
-        f"ChartHeart: {input_data.chartHeart}\n"
-        f"Purposes: {input_data.purposes}\n"
-        f"Years: {input_data.years}\n"
-        f"Pertanyaan: {input_data.message}"
-    )
-
-    # Create or use an existing thread
-    if input_data.thread_id:
-        thread_id = input_data.thread_id
-        thread = client.beta.threads.retrieve(thread_id)
-    else:
-        thread = client.beta.threads.create(messages=[{"role": "user", "content": user_message}])
-        thread_id = thread.id
-
-    # Create a run and poll for completion
-    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
-    messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
-    message_content = messages[0].content[0].text
-
-    return {
-        "response": message_content.value,
-        "thread_id": thread_id
-    }
-
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -97,16 +64,19 @@ assistant = client.beta.assistants.update(
   tool_resources={"file_search": {"vector_store_ids": [vector_key]}},
 )
 
-class DestinyMatrixInput(BaseModel):
-    points: Dict[str, Any]
-    message: str
-    thread_id: Optional[str] = None
-
 @app.post("/ask")
 async def ask_destiny_matrix(input_data: DestinyMatrixInput):
-    # Compose the user's message with the points
-    points_str = "\n".join(f"{k}: {v}" for k, v in input_data.points.items())
-    user_message = f"Data matrix:\n{points_str}\n\nQuestion: {input_data.message}"
+    # Compose the user's message with all relevant data
+    user_message = (
+        f"Nama: {input_data.name}\n"
+        f"Gender: {input_data.gender}\n"
+        f"Tanggal Lahir: {input_data.date}\n"
+        f"Points: {input_data.points}\n"
+        f"ChartHeart: {input_data.chartHeart}\n"
+        f"Purposes: {input_data.purposes}\n"
+        f"Years: {input_data.years}\n"
+        f"Pertanyaan: {input_data.message}"
+    )
 
     # Create or use an existing thread
     if input_data.thread_id:
@@ -119,13 +89,8 @@ async def ask_destiny_matrix(input_data: DestinyMatrixInput):
     # Create a run and poll for completion
     run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
     messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
-    #debug
-    print("Messages:", messages)
-    if not messages:
-        return {"response": "[asistant tidak merespon...].", "thread_id": thread_id}
-    else:
-        message_content = messages[0].content[0].text
-    # Optionally, handle citations if needed (not shown here)
+    message_content = messages[0].content[0].text
+
     return {
         "response": message_content.value,
         "thread_id": thread_id
