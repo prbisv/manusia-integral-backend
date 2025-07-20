@@ -12,6 +12,7 @@ app = FastAPI()
 origins = [
     "https://manusiaintegral.com",
     "http://localhost:8000",
+    "*"
 ]
 
 app.add_middleware(
