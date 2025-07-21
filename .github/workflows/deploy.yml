@@ -37,20 +37,4 @@ jobs:
       - name: Update App Runner service
         run: |
           aws apprunner update-service \
-            --service-arn "${{ secrets.APP_RUNNER_SERVICE_ARN }}" \
-            --source-configuration "$(jq -n \
-              --arg IMAGE_IDENTIFIER "${{ secrets.ECR_REPOSITORY_URI }}:${{ env.IMAGE_TAG }}" \
-              '{ImageRepository: {ImageIdentifier: $IMAGE_IDENTIFIER, ImageRepositoryType: "ECR"}, AutoDeploymentsEnabled: true, AuthenticationConfiguration: {}}')" \
-            --environment-variables "$(jq -n \
-              --arg OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}" \
-              --arg VECTOR_STORE_ID "${{ secrets.VECTOR_STORE_ID }}" \
-              --arg ASSISTANT_ID "${{ secrets.ASSISTANT_ID }}" \
-              --arg APP_ID "${{ secrets.APP_ID }}" \
-              --arg PROMPT "${{ vars.PROMPT }}" \
-              '[ 
-                {Name: "OPENAI_API_KEY", Value: $OPENAI_API_KEY},
-                {Name: "VECTOR_STORE_ID", Value: $VECTOR_STORE_ID},
-                {Name: "ASSISTANT_ID", Value: $ASSISTANT_ID},
-                {Name: "APP_ID", Value: $APP_ID},
-                {Name: "PROMPT", Value: $PROMPT}
-              ]')"
+            --service-arn "${{ secrets.APP_RUNNER_SERVICE_ARN }}"
