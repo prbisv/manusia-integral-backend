@@ -1,4 +1,4 @@
-name: Build, Push to ECR, and Deploy to App Runner
+name: Build and Deploy to App Runner
 
 on:
   pull_request:
@@ -6,55 +6,51 @@ on:
 
 env:
   AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY_URI: ${{ secrets.ECR_REPOSITORY_URI }}
-  APP_RUNNER_SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  deploy:
-    name: Build and Deploy to App Runner
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Login to Amazon ECR
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY_URI }}
 
-    - name: Generate image tag
-      id: vars
-      run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Build and Push Docker image
+        run: |
+          docker build -t ${{ secrets.ECR_REPOSITORY_URI }}:$IMAGE_TAG .
+          docker push ${{ secrets.ECR_REPOSITORY_URI }}:$IMAGE_TAG
 
-    - name: Build Docker image
-      run: |
-        docker build -t $ECR_REPOSITORY_URI:$IMAGE_TAG .
-
-    - name: Push Docker image to ECR
-      run: |
-        docker push $ECR_REPOSITORY_URI:$IMAGE_TAG
-
-    - name: Deploy to AWS App Runner with ENV
-      run: |
-        aws apprunner update-service \
-          --service-arn "$APP_RUNNER_SERVICE_ARN" \
-          --source-configuration '{
-            "ImageRepository": {
-              "ImageIdentifier": "'"$ECR_REPOSITORY_URI:$IMAGE_TAG"'",
-              "ImageRepositoryType": "ECR"
-            },
-            "AutoDeploymentsEnabled": true,
-            "AuthenticationConfiguration": {}
-          }' \
-          --environment-variables \
-            Name=OPENAI_API_KEY,Value=${{ secrets.OPENAI_API_KEY }} \
-            Name=VECTOR_STORE_ID,Value=${{ secrets.VECTOR_STORE_ID }} \
-            Name=ASSISTANT_ID,Value=${{ secrets.ASSISTANT_ID }} \
-            Name=APP_ID,Value=${{ secrets.APP_ID }} \
-            Name=PROMPT,Value=${{ secrets.PROMPT }}
+      - name: Update App Runner service
+        run: |
+          aws apprunner update-service \
+            --service-arn "${{ secrets.APP_RUNNER_SERVICE_ARN }}" \
+            --source-configuration "$(jq -n \
+              --arg IMAGE_IDENTIFIER "${{ secrets.ECR_REPOSITORY_URI }}:${{ env.IMAGE_TAG }}" \
+              '{ImageRepository: {ImageIdentifier: $IMAGE_IDENTIFIER, ImageRepositoryType: "ECR"}, AutoDeploymentsEnabled: true, AuthenticationConfiguration: {}}')" \
+            --environment-variables "$(jq -n \
+              --arg OPENAI_API_KEY "${{ secrets.OPENAI_API_KEY }}" \
+              --arg VECTOR_STORE_ID "${{ secrets.VECTOR_STORE_ID }}" \
+              --arg ASSISTANT_ID "${{ secrets.ASSISTANT_ID }}" \
+              --arg APP_ID "${{ secrets.APP_ID }}" \
+              --arg PROMPT "${{ vars.PROMPT }}" \
+              '[ 
+                {Name: "OPENAI_API_KEY", Value: $OPENAI_API_KEY},
+                {Name: "VECTOR_STORE_ID", Value: $VECTOR_STORE_ID},
+                {Name: "ASSISTANT_ID", Value: $ASSISTANT_ID},
+                {Name: "APP_ID", Value: $APP_ID},
+                {Name: "PROMPT", Value: $PROMPT}
+              ]')"
