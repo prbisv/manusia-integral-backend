@@ -1,0 +1,51 @@
+name: Build, Push to ECR, Deploy to App Runner
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY_URI: ${{ secrets.ECR_REPOSITORY_URI }}
+  APP_RUNNER_SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Extract repo and tag
+      id: vars
+      run: |
+        IMAGE_TAG=${GITHUB_SHA::7}
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+    - name: Build Docker image
+      run: |
+        docker build -t $ECR_REPOSITORY_URI:$IMAGE_TAG .
+
+    - name: Push Docker image to ECR
+      run: |
+        docker push $ECR_REPOSITORY_URI:$IMAGE_TAG
+
+    - name: Deploy to App Runner
+      run: |
+        aws apprunner update-service \
+          --service-arn $APP_RUNNER_SERVICE_ARN \
+          --source-configuration ImageRepository="{ImageIdentifier=$ECR_REPOSITORY_URI:$IMAGE_TAG,ImageRepositoryType=ECR}" \
+          --auto-deploy-enabled
