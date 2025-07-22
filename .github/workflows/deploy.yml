@@ -38,7 +38,7 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY_URI }}:${{ steps.set-output.outputs.image_tag }} .
+          docker build --platform linux/amd64 -t ${{ secrets.ECR_REPOSITORY_URI }}:${{ steps.set-output.outputs.image_tag }} .
           docker push ${{ secrets.ECR_REPOSITORY_URI }}:${{ steps.set-output.outputs.image_tag }}
 
   deploy:
