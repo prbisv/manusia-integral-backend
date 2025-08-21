@@ -36,6 +36,13 @@ class DestinyMatrixInput(BaseModel):
     message: str
     thread_id: Optional[str] = None
 
+class DestinyMatrixInputCouple(BaseModel):
+    person1: Dict[str, str]
+    person2: Dict[str, str]
+    points: Dict[str, Any]
+    message: str
+    thread_id: Optional[str] = None
+
 load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -43,7 +50,7 @@ vector_key = os.getenv("VECTOR_STORE_ID")
 system_prompt = os.getenv("PROMPT")
 assistant_id = os.getenv("ASSISTANT_ID")
 
-if not api_key or not vector_key or not system_prompt:
+if not api_key or not vector_key:
     raise ValueError("environment variable not set.")
 
 client = OpenAI(api_key=api_key)
@@ -89,6 +96,49 @@ async def ask_destiny_matrix(input_data: DestinyMatrixInput):
     # Create a run and poll for completion
     run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
     messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
+    message_content = messages[0].content[0].text
+
+    return {
+        "response": message_content.value,
+        "thread_id": thread_id
+    }
+
+@app.post("/askcouple")
+async def ask_destiny_matrix_couple(input_data: DestinyMatrixInputCouple):
+    # Compose the user's message with all relevant data
+    user_message = (
+        f"Analisis Kecocokan Pasangan:\n\n"
+        f"Orang Pertama:\n"
+        f"Nama: {input_data.person1.get('name', '')}\n"
+        f"Tanggal Lahir: {input_data.person1.get('date', '')}\n\n"
+        f"Orang Kedua:\n"
+        f"Nama: {input_data.person2.get('name', '')}\n"
+        f"Tanggal Lahir: {input_data.person2.get('date', '')}\n\n"
+        f"Matrix Points Kecocokan:\n"
+        f"{input_data.points}\n\n"
+        f"Pertanyaan: {input_data.message}"
+    )
+
+    # Create or use an existing thread
+    if input_data.thread_id and input_data.thread_id.strip():
+        thread_id = input_data.thread_id
+        thread = client.beta.threads.retrieve(thread_id)
+        # Add the new message to the existing thread
+        client.beta.threads.messages.create(
+            thread_id=thread_id,
+            role="user",
+            content=user_message
+        )
+    else:
+        thread = client.beta.threads.create(messages=[{"role": "user", "content": user_message}])
+        thread_id = thread.id
+
+    # Create a run and poll for completion
+    run = client.beta.threads.runs.create_and_poll(thread_id=thread_id, assistant_id=assistant_id)
+    messages = list(client.beta.threads.messages.list(thread_id=thread_id, run_id=run.id))
+    if not messages:
+        return {"response": "[assistant tidak merespon...]", "thread_id": thread_id}
+    
     message_content = messages[0].content[0].text
 
     return {

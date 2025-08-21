@@ -53,7 +53,7 @@ This repository provides a FastAPI backend for analyzing Destiny Matrix numerolo
 
 ## API Usage (for Frontend Developers)
 
-### Endpoint
+### Individual Analysis Endpoint
 **POST** `/ask`
 
 ### Request Headers
@@ -77,7 +77,32 @@ Send a JSON object with the following structure (see `sample_user_points.json` f
 
 **All fields are required except `thread_id` (optional, for conversation context).**
 
-### Response Example
+### Couple Compatibility Analysis Endpoint
+**POST** `/askcouple`
+
+### Request Headers
+- `Content-Type: application/json`
+
+### Request Body Example
+Send a JSON object with the following structure:
+
+```json
+{
+  "person1": {
+    "name": "namaorangpertama",
+    "date": "2025-07-01"
+  },
+  "person2": {
+    "name": "namaorangkedua",
+    "date": "2025-07-02"
+  },
+  "points": { /* ...matrix compatibility points... */ },
+  "message": "Bagaimana kecocokan kami sebagai pasangan?",
+  "thread_id": "" // Optional, for conversation context
+}
+```
+
+### Response Example (for both endpoints)
 ```json
 {
   "response": "...jawaban dalam Bahasa Indonesia...",

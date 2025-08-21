@@ -1,0 +1,35 @@
+{
+  "person1": {
+    "name": "namaorangpertama",
+    "date": "2025-07-01"
+  },
+  "person2": {
+    "name": "namaorangkedua",
+    "date": "2025-07-02"
+  },
+  "points": {
+    "apoint": 1,
+    "bpoint": 7,
+    "cpoint": 9,
+    "dpoint": 17,
+    "epoint": 7,
+    "fpoint": 8,
+    "gpoint": 16,
+    "hpoint": 18,
+    "ipoint": 8,
+    "jpoint": 6,
+    "kpoint": 10,
+    "lpoint": 22,
+    "mpoint": 11,
+    "npoint": 16,
+    "opoint": 9,
+    "ppoint": 21,
+    "qpoint": 7,
+    "rpoint": 5,
+    "spoint": 8,
+    "tpoint": 14,
+    "upoint": 5,
+    "vpoint": 12
+  },
+  "message": "Bagaimana kecocokan kami sebagai pasangan berdasarkan destiny matrix?"
+}
